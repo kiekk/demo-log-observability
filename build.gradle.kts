@@ -20,8 +20,19 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter")
+    implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    // Logback JSON encoder
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+
+    // Loki4j - send logs directly to Loki (for local development)
+    implementation("com.github.loki4j:loki-logback-appender:1.5.2")
+
+    // Docker Compose Support - auto-start infrastructure services
+    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="serviceName" source="app.service" defaultValue="demo-api"/>
+    <springProperty scope="context" name="env" source="app.env" defaultValue="local"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${serviceName}","env":"${env}"}</customFields>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <version>[ignore]</version>
+                <levelValue>[ignore]</levelValue>
+            </fieldNames>
+            <includeMdcKeyName>request_id</includeMdcKeyName>
+            <includeMdcKeyName>endpoint</includeMdcKeyName>
+            <includeMdcKeyName>method</includeMdcKeyName>
+            <includeMdcKeyName>status</includeMdcKeyName>
+            <includeMdcKeyName>elapsed_ms</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <!-- Loki Appender - send logs directly to Loki -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>http://localhost:3100/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>job=spring-boot-demo,service=${serviceName},env=${env},level=%level</pattern>
+            </label>
+            <message class="com.github.loki4j.logback.JsonLayout">
+                <!-- Remove mdc_ prefix from field names -->
+                <mdcKeyPrefix></mdcKeyPrefix>
+                <customFields>{"service":"${serviceName}","env":"${env}"}</customFields>
+            </message>
+        </format>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI"/>
+    </root>
+</configuration>

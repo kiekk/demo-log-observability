@@ -1,1 +1,31 @@
+spring:
+  application:
+    name: demo-api
+  docker:
+    compose:
+      # Enable Docker Compose support
+      enabled: true
+      # Path to compose file (relative to project root)
+      file: docker-compose.yml
+      # Lifecycle management
+      lifecycle-management: start_and_stop
+      # Wait for services to be ready
+      start:
+        command: up
+      stop:
+        command: down
+        timeout: 10s
 
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.example.logobservability: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+app:
+  service: demo-api
+  env: local
