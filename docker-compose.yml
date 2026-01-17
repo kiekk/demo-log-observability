@@ -1,0 +1,71 @@
+services:
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infra/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - observability-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_LOG_LEVEL=info
+      - GF_UNIFIED_ALERTING_ENABLED=true
+      - GF_ALERTING_ENABLED=false
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+      - ./infra/grafana/dashboards:/etc/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    networks:
+      - observability-net
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.0.0
+    container_name: alloy
+    volumes:
+      - ./infra/alloy/alloy.hcl:/etc/alloy/config.alloy
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+    networks:
+      - observability-net
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  loadgen:
+    image: grafana/k6:0.48.0
+    container_name: loadgen
+    volumes:
+      - ./infra/loadgen/k6:/scripts
+    networks:
+      - observability-net
+    # Note: App must be running on localhost:8080 before running loadgen
+    # Run specific test by: docker compose run --rm loadgen run /scripts/smoke.js
+    command: ["run", "/scripts/smoke.js"]
+    profiles:
+      - loadtest
+
+networks:
+  observability-net:
+    driver: bridge
+
+volumes:
+  grafana_data:
+  loki_data:
