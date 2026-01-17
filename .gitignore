@@ -38,3 +38,34 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+### Docker Volumes ###
+loki_data/
+grafana_data/
+
+### Logs ###
+*.log
+logs/
+
+### Temporary files ###
+*.swp
+*.swo
+*~
+.tmp/
+
+### k6 output ###
+infra/loadgen/k6/summary.json
+infra/loadgen/k6/*.tar.gz
+
+### Environment variables ###
+.env
+.env.local
+
+### Claude Code ###
+.claude/
+PROJECT.md
