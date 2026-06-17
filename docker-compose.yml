@@ -56,11 +56,48 @@ services:
       - ./infra/loadgen/k6:/scripts
     networks:
       - observability-net
-    # Note: App must be running on localhost:8080 before running loadgen
-    # Run specific test by: docker compose run --rm loadgen run /scripts/smoke.js
     command: ["run", "/scripts/smoke.js"]
     profiles:
       - loadtest
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_DB=buggy
+      - POSTGRES_USER=buggy
+      - POSTGRES_PASSWORD=buggy
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - observability-net
+    profiles:
+      - demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buggy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  buggy-service:
+    build:
+      context: ./demo-buggy-service
+    container_name: buggy-service
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/buggy
+      - SPRING_DATASOURCE_USERNAME=buggy
+      - SPRING_DATASOURCE_PASSWORD=buggy
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=${HIKARI_MAX_POOL:-10}
+    networks:
+      - observability-net
+    profiles:
+      - demo
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 networks:
   observability-net:
@@ -69,3 +106,4 @@ networks:
 volumes:
   grafana_data:
   loki_data:
+  postgres_data:
