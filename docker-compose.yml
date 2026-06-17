@@ -101,6 +101,20 @@ services:
       postgres:
         condition: service_healthy
 
+  webhook-echo:
+    image: python:3.12-alpine
+    container_name: webhook-echo
+    working_dir: /app
+    volumes:
+      - ./tools/webhook-echo:/app
+    command: ["python", "server.py"]
+    ports:
+      - "9000:9000"
+    networks:
+      - observability-net
+    profiles:
+      - demo
+
 networks:
   observability-net:
     driver: bridge
