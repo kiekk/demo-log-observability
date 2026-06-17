@@ -1,54 +1,54 @@
-// Discover Docker containers
 discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+  host             = "unix:///var/run/docker.sock"
   refresh_interval = "5s"
 }
 
-// Relabel discovered containers
 discovery.relabel "docker" {
   targets = discovery.docker.containers.targets
 
-  // Only collect logs from app container
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex = ".*-app-.*"
-    action = "keep"
+    regex         = "/(app|buggy-service|demo-app-.*)"
+    action        = "keep"
   }
 
-  // Set job label
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.+)"
+    target_label  = "container_name"
+  }
+
   rule {
     target_label = "job"
-    replacement = "spring-boot-demo"
+    replacement  = "spring-boot-demo"
   }
 
-  // Set service label
-  rule {
-    target_label = "service"
-    replacement = "demo-api"
-  }
-
-  // Set env label
-  rule {
-    target_label = "env"
-    replacement = "local"
-  }
-
-  // Set container name label
   rule {
     source_labels = ["__meta_docker_container_name"]
-    target_label = "container"
+    regex         = "/buggy-service"
+    target_label  = "service"
+    replacement   = "demo-buggy-service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/app|/demo-app-.*"
+    target_label  = "service"
+    replacement   = "demo-api"
+  }
+
+  rule {
+    target_label = "env"
+    replacement  = "local"
   }
 }
 
-// Collect logs from Docker
-loki.source.docker "app" {
-  host = "unix:///var/run/docker.sock"
-  targets = discovery.relabel.docker.output
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker.output
   forward_to = [loki.write.default.receiver]
-  relabel_rules = discovery.relabel.docker.rules
 }
 
-// Write logs to Loki
 loki.write "default" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
