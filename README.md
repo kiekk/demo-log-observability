@@ -1064,37 +1064,33 @@ curl http://localhost:8080/api/burst?lines=200
 
 ---
 
-## AI Incident Bot 데모 (Plan 1)
+## AI Incident Bot 데모 (Plan 2)
 
-Plan 1 단계에서는 시나리오 1~3 (CODE_BUG) 트리거 시 Loki 적재 → Grafana Alert 발화 → Webhook 호출까지 검증 가능합니다 (AI 분석/PR 생성은 Plan 2~3에서 추가).
+Plan 2 단계에서는 ai-bot 컨테이너가 Grafana Webhook을 수신해 dedup → Loki 조회 → worktree 생성 → Slack 알림까지 동작합니다. 분석은 fake (Plan 3에서 실제 Claude Agent SDK로 교체).
 
 ### 실행
 
 ```bash
 cp .env.example .env
-# (선택) GitHub submodule 미가져온 경우
+# .env 편집: WEBHOOK_TOKEN, SLACK_WEBHOOK_URL, GITHUB_REPO_URL 등 채우기
 git submodule update --init --recursive
-
 docker compose --profile demo up -d --build
 ```
 
 ### 시나리오 트리거
 
+(Plan 1과 동일)
+
 ```bash
-# 시나리오 1 (NPE)
 docker compose --profile loadtest run --rm loadgen run /scripts/scenario-1-npe.js
-
-# 시나리오 2 (0 나눗셈)
-docker compose --profile loadtest run --rm loadgen run /scripts/scenario-2-divzero.js
-
-# 시나리오 3 (Enum 매핑)
-docker compose --profile loadtest run --rm loadgen run /scripts/scenario-3-enum.js
 ```
 
 ### 검증
 
-- Grafana: http://localhost:3000 (admin/admin) → Explore → `{service="demo-buggy-service"} | json | level="ERROR"`
-- Webhook 수신 확인: `docker compose logs webhook-echo`
-- buggy-service health: http://localhost:8081/actuator/health
+- Grafana: http://localhost:3000 (admin/admin)
+- ai-bot health: http://localhost:8090/health
+- ai-bot 로그: `docker compose logs -f ai-bot`
+- DB: `docker compose exec ai-bot python3 -c "import sqlite3; conn=sqlite3.connect('/data/ai-bot.db'); cur=conn.cursor(); cur.execute('SELECT * FROM analysis_runs'); print(cur.fetchall())"`
+- Slack: 채널에서 단계별 메시지 확인 (DRY_RUN=false 시)
 
-> Plan 2부터 webhook-echo가 실제 AI 봇으로 교체됩니다.
+> Plan 2 단계에서는 Analyzer가 FakeAnalyzer로 stub되어 실제 LLM 호출/PR 생성은 하지 않음. Plan 3에서 Claude Agent SDK + GitHubClient로 교체.
