@@ -1063,3 +1063,38 @@ curl http://localhost:8080/api/burst?lines=200
 - `elapsed_ms`: 응답 시간 (밀리초)
 
 ---
+
+## AI Incident Bot 데모 (Plan 1)
+
+Plan 1 단계에서는 시나리오 1~3 (CODE_BUG) 트리거 시 Loki 적재 → Grafana Alert 발화 → Webhook 호출까지 검증 가능합니다 (AI 분석/PR 생성은 Plan 2~3에서 추가).
+
+### 실행
+
+```bash
+cp .env.example .env
+# (선택) GitHub submodule 미가져온 경우
+git submodule update --init --recursive
+
+docker compose --profile demo up -d --build
+```
+
+### 시나리오 트리거
+
+```bash
+# 시나리오 1 (NPE)
+docker compose --profile loadtest run --rm loadgen run /scripts/scenario-1-npe.js
+
+# 시나리오 2 (0 나눗셈)
+docker compose --profile loadtest run --rm loadgen run /scripts/scenario-2-divzero.js
+
+# 시나리오 3 (Enum 매핑)
+docker compose --profile loadtest run --rm loadgen run /scripts/scenario-3-enum.js
+```
+
+### 검증
+
+- Grafana: http://localhost:3000 (admin/admin) → Explore → `{service="demo-buggy-service"} | json | level="ERROR"`
+- Webhook 수신 확인: `docker compose logs webhook-echo`
+- buggy-service health: http://localhost:8081/actuator/health
+
+> Plan 2부터 webhook-echo가 실제 AI 봇으로 교체됩니다.
