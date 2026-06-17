@@ -3,9 +3,7 @@ apiVersion: 1
 policies:
   - orgId: 1
     receiver: grafana-default-email
-    group_by:
-      - grafana_folder
-      - alertname
+    group_by: ['grafana_folder', 'alertname']
     group_wait: 10s
     group_interval: 10s
     repeat_interval: 12h
@@ -16,4 +14,12 @@ policies:
         continue: false
         group_wait: 10s
         group_interval: 10s
+        repeat_interval: 1h
+
+      - receiver: ai-bot-webhook
+        object_matchers:
+          - ['target', '=', 'ai-bot']
+        group_by: ['service', 'commit_sha']
+        group_wait: 10s
+        group_interval: 30s
         repeat_interval: 1h

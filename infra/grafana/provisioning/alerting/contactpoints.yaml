@@ -9,3 +9,17 @@ contactPoints:
         settings:
           addresses: admin@localhost
         disableResolveMessage: false
+
+  - orgId: 1
+    name: ai-bot-webhook
+    receivers:
+      - uid: ai-bot-webhook
+        type: webhook
+        settings:
+          url: ${AI_BOT_WEBHOOK_URL}
+          httpMethod: POST
+          username: ''
+          password: ''
+          authorization_scheme: Bearer
+          authorization_credentials: ${WEBHOOK_TOKEN}
+          maxAlerts: 0

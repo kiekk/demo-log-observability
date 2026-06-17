@@ -24,6 +24,8 @@ services:
       - GF_LOG_LEVEL=info
       - GF_UNIFIED_ALERTING_ENABLED=true
       - GF_ALERTING_ENABLED=false
+      - AI_BOT_WEBHOOK_URL=${AI_BOT_WEBHOOK_URL:-http://webhook-echo:9000/webhooks/grafana}
+      - WEBHOOK_TOKEN=${WEBHOOK_TOKEN:-dev-token}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning
       - ./infra/grafana/dashboards:/etc/grafana/dashboards
