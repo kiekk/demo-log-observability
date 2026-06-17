@@ -24,7 +24,7 @@ services:
       - GF_LOG_LEVEL=info
       - GF_UNIFIED_ALERTING_ENABLED=true
       - GF_ALERTING_ENABLED=false
-      - AI_BOT_WEBHOOK_URL=${AI_BOT_WEBHOOK_URL:-http://webhook-echo:9000/webhooks/grafana}
+      - AI_BOT_WEBHOOK_URL=${AI_BOT_WEBHOOK_URL:-http://ai-bot:8090/webhooks/grafana}
       - WEBHOOK_TOKEN=${WEBHOOK_TOKEN:-dev-token}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning
@@ -101,19 +101,30 @@ services:
       postgres:
         condition: service_healthy
 
-  webhook-echo:
-    image: python:3.12-alpine
-    container_name: webhook-echo
-    working_dir: /app
-    volumes:
-      - ./tools/webhook-echo:/app
-    command: ["python", "server.py"]
+  ai-bot:
+    build: ./ai-bot
+    container_name: ai-bot
     ports:
-      - "9000:9000"
+      - "8090:8090"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-not-used-in-plan-2}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-not-used-in-plan-2}
+      - GITHUB_REPO=${GITHUB_REPO}
+      - GITHUB_REPO_URL=${GITHUB_REPO_URL}
+      - LOKI_URL=http://loki:3100
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - WEBHOOK_TOKEN=${WEBHOOK_TOKEN:-dev-token}
+      - DRY_RUN=${DRY_RUN:-false}
+      - DAILY_COST_CAP_USD=${DAILY_COST_CAP_USD:-5}
+    volumes:
+      - ai_bot_data:/data
     networks:
       - observability-net
     profiles:
       - demo
+    depends_on:
+      - loki
+    restart: unless-stopped
 
 networks:
   observability-net:
@@ -123,3 +134,4 @@ volumes:
   grafana_data:
   loki_data:
   postgres_data:
+  ai_bot_data:
