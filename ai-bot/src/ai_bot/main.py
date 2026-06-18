@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from ai_bot.analyzer.fake import FakeAnalyzer
+from ai_bot.analyzer.claude import ClaudeAnalyzer
 from ai_bot.config import Settings
 from ai_bot.db.session import create_engine, create_session_maker
 from ai_bot.orchestrator import Orchestrator
+from ai_bot.services.github_client import GitHubClient
 from ai_bot.services.log_fetcher import LogFetcher
 from ai_bot.services.repo_manager import RepoManager
 from ai_bot.services.slack_notifier import SlackNotifier
@@ -33,7 +35,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         github_token=s.github_token,
     )
     slack = SlackNotifier(webhook_url=s.slack_webhook_url, dry_run=s.dry_run)
-    analyzer = FakeAnalyzer()
+    github = GitHubClient(
+        token=s.github_token,
+        repo_full_name=s.github_repo,
+        dry_run=s.dry_run,
+    )
+    analyzer = ClaudeAnalyzer()
 
     orchestrator = Orchestrator(
         settings=s,
@@ -42,16 +49,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         repo_manager=repo_manager,
         slack=slack,
         analyzer=analyzer,
+        github=github,
     )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        # bare clone 준비 (실패해도 봇은 기동)
         try:
             await repo_manager.ensure_bare_clone()
         except Exception as exc:  # noqa: BLE001
             logger.warning("ensure_bare_clone failed at startup: %s — will retry per request", exc)
-        logger.info("ai-bot ready (dry_run=%s)", s.dry_run)
+        logger.info("ai-bot ready (dry_run=%s, model=%s)", s.dry_run, analyzer._model)
         yield
         await engine.dispose()
 
@@ -64,7 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/health")
     async def health() -> dict:
-        return {"status": "ok", "dry_run": s.dry_run}
+        return {"status": "ok", "dry_run": s.dry_run, "model": analyzer._model}
 
     return app
 
