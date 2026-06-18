@@ -11,6 +11,7 @@ from ai_bot.analyzer.result import AnalysisResult
 from ai_bot.config import Settings
 from ai_bot.db.models import Base, Incident
 from ai_bot.orchestrator import Orchestrator
+from ai_bot.services.github_client import GitHubClient
 from ai_bot.services.log_fetcher import LogFetcher
 from ai_bot.services.repo_manager import RepoManager
 from ai_bot.services.slack_notifier import SlackNotifier
@@ -57,6 +58,7 @@ async def test_handle_first_incident_completes(settings, session_maker, tmp_path
         repo_manager=repo_manager,
         slack=slack,
         analyzer=analyzer,
+        github=AsyncMock(spec=GitHubClient),
     )
     event = IncidentEvent(service="demo-buggy-service", commit_sha="abc123", error_class="NPE")
     await orch.handle(event)
@@ -77,6 +79,7 @@ async def test_duplicate_event_skips_analysis(settings, session_maker, tmp_path:
         settings=settings, session_maker=session_maker,
         log_fetcher=log_fetcher, repo_manager=repo_manager,
         slack=slack, analyzer=FakeAnalyzer(),
+        github=AsyncMock(spec=GitHubClient),
     )
     event = IncidentEvent(service="demo-buggy-service", commit_sha="abc", error_class="NPE")
 
@@ -100,6 +103,7 @@ async def test_repo_failure_marks_run_failed(settings, session_maker, tmp_path: 
         settings=settings, session_maker=session_maker,
         log_fetcher=log_fetcher, repo_manager=repo_manager,
         slack=slack, analyzer=FakeAnalyzer(),
+        github=AsyncMock(spec=GitHubClient),
     )
     event = IncidentEvent(service="demo-buggy-service", commit_sha="abc", error_class="NPE")
     await orch.handle(event)
