@@ -15,12 +15,22 @@ class RepoManagerError(Exception):
 
 
 class RepoManager:
-    def __init__(self, *, clone_url: str, cache_dir: str, worktree_dir: str) -> None:
+    def __init__(self, *, clone_url: str, cache_dir: str, worktree_dir: str, github_token: str | None = None) -> None:
         self._clone_url = clone_url
         self._cache_dir = Path(cache_dir)
         self._worktree_dir = Path(worktree_dir)
         self._bare_path = self._cache_dir / "demo.git"
         self._lock = asyncio.Lock()
+        self._github_token = github_token or None  # 빈 문자열은 None 취급
+
+    def _resolve_url(self, url: str) -> str:
+        if not self._github_token:
+            return url
+        # https://github.com/owner/repo.git → https://x-access-token:TOKEN@github.com/owner/repo.git
+        prefix = "https://github.com/"
+        if url.startswith(prefix):
+            return f"https://x-access-token:{self._github_token}@github.com/" + url[len(prefix):]
+        return url
 
     async def ensure_bare_clone(self) -> Path:
         async with self._lock:
@@ -29,7 +39,7 @@ class RepoManager:
             if self._bare_path.exists():
                 await self._run(["git", "-C", str(self._bare_path), "fetch", "--all", "--tags", "--prune"])
             else:
-                await self._run(["git", "clone", "--bare", self._clone_url, str(self._bare_path)])
+                await self._run(["git", "clone", "--bare", self._resolve_url(self._clone_url), str(self._bare_path)])
             return self._bare_path
 
     async def checkout_at_sha(self, sha: str) -> Path:

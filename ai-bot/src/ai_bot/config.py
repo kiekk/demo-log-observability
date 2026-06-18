@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     db_path: str = Field(alias="DB_PATH")
 
     # Optional with defaults
+    github_token: str = Field(default="", alias="GITHUB_TOKEN")
     dry_run: bool = Field(default=False, alias="DRY_RUN")
     daily_cost_cap_usd: float = Field(default=5.0, alias="DAILY_COST_CAP_USD")
     dedup_window_minutes: int = Field(default=10, alias="DEDUP_WINDOW_MINUTES")

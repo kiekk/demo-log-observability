@@ -30,6 +30,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         clone_url=s.github_repo_url,
         cache_dir=s.repo_cache_dir,
         worktree_dir=s.worktree_dir,
+        github_token=s.github_token,
     )
     slack = SlackNotifier(webhook_url=s.slack_webhook_url, dry_run=s.dry_run)
     analyzer = FakeAnalyzer()

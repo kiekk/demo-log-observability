@@ -65,3 +65,45 @@ async def test_cleanup_worktree_removes_it(upstream_repo: Path, tmp_path: Path) 
     worktree = await mgr.checkout_at_sha(sha)
     await mgr.cleanup_worktree(worktree)
     assert not worktree.exists()
+
+
+def test_resolve_url_without_token_passthrough(tmp_path: Path) -> None:
+    mgr = RepoManager(
+        clone_url="https://github.com/owner/repo.git",
+        cache_dir=str(tmp_path / "cache"),
+        worktree_dir=str(tmp_path / "wt"),
+        github_token=None,
+    )
+    assert mgr._resolve_url("https://github.com/owner/repo.git") == "https://github.com/owner/repo.git"
+
+
+def test_resolve_url_with_token_inlines(tmp_path: Path) -> None:
+    mgr = RepoManager(
+        clone_url="https://github.com/owner/repo.git",
+        cache_dir=str(tmp_path / "cache"),
+        worktree_dir=str(tmp_path / "wt"),
+        github_token="ghp_xyz",
+    )
+    expected = "https://x-access-token:ghp_xyz@github.com/owner/repo.git"
+    assert mgr._resolve_url("https://github.com/owner/repo.git") == expected
+
+
+def test_resolve_url_ssh_url_passthrough(tmp_path: Path) -> None:
+    mgr = RepoManager(
+        clone_url="git@github.com:owner/repo.git",
+        cache_dir=str(tmp_path / "cache"),
+        worktree_dir=str(tmp_path / "wt"),
+        github_token="ghp_xyz",
+    )
+    # SSH URL은 token inject 대상 아님
+    assert mgr._resolve_url("git@github.com:owner/repo.git") == "git@github.com:owner/repo.git"
+
+
+def test_resolve_url_empty_token_treated_as_none(tmp_path: Path) -> None:
+    mgr = RepoManager(
+        clone_url="https://github.com/owner/repo.git",
+        cache_dir=str(tmp_path / "cache"),
+        worktree_dir=str(tmp_path / "wt"),
+        github_token="",
+    )
+    assert mgr._resolve_url("https://github.com/owner/repo.git") == "https://github.com/owner/repo.git"
