@@ -1064,33 +1064,28 @@ curl http://localhost:8080/api/burst?lines=200
 
 ---
 
-## AI Incident Bot 데모 (Plan 2)
+## AI Incident Bot 데모 (Plan 3)
 
-Plan 2 단계에서는 ai-bot 컨테이너가 Grafana Webhook을 수신해 dedup → Loki 조회 → worktree 생성 → Slack 알림까지 동작합니다. 분석은 fake (Plan 3에서 실제 Claude Agent SDK로 교체).
+시나리오 1~3 (CODE_BUG) 트리거 시 GitHub에 Issue + Draft PR이 자동 생성됩니다.
 
 ### 실행
 
 ```bash
 cp .env.example .env
-# .env 편집: WEBHOOK_TOKEN, SLACK_WEBHOOK_URL, GITHUB_REPO_URL 등 채우기
+# .env 편집: ANTHROPIC_API_KEY, GITHUB_TOKEN, SLACK_WEBHOOK_URL, WEBHOOK_TOKEN, GITHUB_REPO, GITHUB_REPO_URL 채우기
 git submodule update --init --recursive
 docker compose --profile demo up -d --build
 ```
 
-### 시나리오 트리거
-
-(Plan 1과 동일)
-
-```bash
-docker compose --profile loadtest run --rm loadgen run /scripts/scenario-1-npe.js
-```
-
 ### 검증
 
-- Grafana: http://localhost:3000 (admin/admin)
-- ai-bot health: http://localhost:8090/health
-- ai-bot 로그: `docker compose logs -f ai-bot`
-- DB: `docker compose exec ai-bot python3 -c "import sqlite3; conn=sqlite3.connect('/data/ai-bot.db'); cur=conn.cursor(); cur.execute('SELECT * FROM analysis_runs'); print(cur.fetchall())"`
-- Slack: 채널에서 단계별 메시지 확인 (DRY_RUN=false 시)
+1. 시나리오 트리거: `docker compose --profile loadtest run --rm loadgen run /scripts/scenario-1-npe.js`
+2. 2~3분 후 Slack `#ai-bot-demo` 채널에서 단계별 메시지 확인
+3. GitHub https://github.com/kiekk/demo-buggy-service/pulls 에서 Draft PR 확인
 
-> Plan 2 단계에서는 Analyzer가 FakeAnalyzer로 stub되어 실제 LLM 호출/PR 생성은 하지 않음. Plan 3에서 Claude Agent SDK + GitHubClient로 교체.
+> ⚠️ Draft PR은 시연용. 머지하면 의도적 버그가 사라져 시나리오 재현 불가.
+
+### 비용
+
+- 1회 시연: 약 $0.5~1
+- 일일 cap: `DAILY_COST_CAP_USD=5` (기본)
