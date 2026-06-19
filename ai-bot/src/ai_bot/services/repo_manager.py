@@ -42,16 +42,38 @@ class RepoManager:
                 await self._run(["git", "clone", "--bare", self._resolve_url(self._clone_url), str(self._bare_path)])
             return self._bare_path
 
+    async def _resolve_sha(self, sha: str) -> str:
+        """sha가 'unknown'이거나 유효하지 않으면 main HEAD로 fallback."""
+        if sha.lower() in ("unknown", "", "none"):
+            logger.warning("commit_sha=%r is unresolvable — falling back to main HEAD", sha)
+            resolved = await self._run([
+                "git", "-C", str(self._bare_path), "rev-parse", "main",
+            ])
+            return resolved.strip()
+        # 유효성 검증 (존재하지 않는 sha이면 main fallback)
+        try:
+            resolved = await self._run([
+                "git", "-C", str(self._bare_path), "rev-parse", "--verify", sha,
+            ])
+            return resolved.strip()
+        except RepoManagerError:
+            logger.warning("commit_sha=%r not found in repo — falling back to main HEAD", sha)
+            resolved = await self._run([
+                "git", "-C", str(self._bare_path), "rev-parse", "main",
+            ])
+            return resolved.strip()
+
     async def checkout_at_sha(self, sha: str) -> Path:
         await self.ensure_bare_clone()
-        worktree_path = self._worktree_dir / f"wt-{sha[:8]}-{uuid.uuid4().hex[:6]}"
+        resolved = await self._resolve_sha(sha)
+        worktree_path = self._worktree_dir / f"wt-{resolved[:8]}-{uuid.uuid4().hex[:6]}"
         try:
             await self._run([
                 "git", "-C", str(self._bare_path),
-                "worktree", "add", "--detach", str(worktree_path), sha,
+                "worktree", "add", "--detach", str(worktree_path), resolved,
             ])
         except RepoManagerError as exc:
-            raise RepoManagerError(f"failed to checkout {sha}: {exc}") from exc
+            raise RepoManagerError(f"failed to checkout {resolved!r} (original sha={sha!r}): {exc}") from exc
         return worktree_path
 
     async def cleanup_worktree(self, worktree_path: Path) -> None:

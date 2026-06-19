@@ -31,10 +31,17 @@ COPY alembic.ini /app/
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
-RUN mkdir -p /data /data/repos /data/worktrees
+# 비 root 사용자 생성 (claude --dangerously-skip-permissions은 root 실행 불가)
+RUN useradd -m -u 1001 aibot \
+    && mkdir -p /data /data/repos /data/worktrees \
+    && chown -R aibot:aibot /data /app \
+    && git config --global --add safe.directory '*'
+
 ENV DB_PATH=/data/ai-bot.db
 ENV REPO_CACHE_DIR=/data/repos
 ENV WORKTREE_DIR=/data/worktrees
+
+USER aibot
 
 EXPOSE 8090
 
