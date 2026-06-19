@@ -1064,28 +1064,35 @@ curl http://localhost:8080/api/burst?lines=200
 
 ---
 
-## AI Incident Bot 데모 (Plan 3)
+## AI Incident Bot 데모
 
-시나리오 1~3 (CODE_BUG) 트리거 시 GitHub에 Issue + Draft PR이 자동 생성됩니다.
+모니터링 알림 → AI가 배포된 코드를 분석 → GitHub에 Issue/PR 자동 생성하는 전체 파이프라인 데모.
 
-### 실행
+### 5분 안에 시작
+1. `.env` 셋업: [`docs/DEMO_GUIDE.md` § 0](docs/DEMO_GUIDE.md#0-사전-준비-1회) 참고
+2. `git submodule update --init --recursive`
+3. `docker compose --profile demo up -d --build`
+4. 90초 후: 시나리오 트리거
 
-```bash
-cp .env.example .env
-# .env 편집: ANTHROPIC_API_KEY, GITHUB_TOKEN, SLACK_WEBHOOK_URL, WEBHOOK_TOKEN, GITHUB_REPO, GITHUB_REPO_URL 채우기
-git submodule update --init --recursive
-docker compose --profile demo up -d --build
-```
+### 문서
+- [DEMO_GUIDE](docs/DEMO_GUIDE.md) — 시나리오별 시연 체크리스트 (5분/15분/30분 시연 스크립트 + FAQ + 트러블슈팅)
+- [ARCHITECTURE](docs/ARCHITECTURE.md) — 5분 설명용 요약
+- [spec](docs/superpowers/specs/2026-06-16-ai-incident-bot-demo-design.md) — 전체 설계 문서
+- [plans](docs/superpowers/plans/) — 구현 plan 1~4
 
-### 검증
+### 시연 시나리오 6개
 
-1. 시나리오 트리거: `docker compose --profile loadtest run --rm loadgen run /scripts/scenario-1-npe.js`
-2. 2~3분 후 Slack `#ai-bot-demo` 채널에서 단계별 메시지 확인
-3. GitHub https://github.com/kiekk/demo-buggy-service/pulls 에서 Draft PR 확인
+| # | 카테고리 | 트리거 | 봇 동작 |
+|---|---|---|---|
+| 1 | CODE_BUG (NPE) | `scenario-1-npe.js` | Issue + Draft PR (null check) |
+| 2 | CODE_BUG (0 나눗셈) | `scenario-2-divzero.js` | Issue + Draft PR (zero guard) |
+| 3 | CODE_BUG (Enum) | `scenario-3-enum.js` | Issue + Draft PR (validation) |
+| 4 | DATA_ANOMALY | `scenario-4-data.js` | Issue only + 검증 SQL/LogQL |
+| 5 | INFRA_ISSUE | `scenario-5-dbpool.js` | Issue only + 점검 체크리스트 |
+| 6 | BENIGN_ERROR | `scenario-6-benign.js` | 좁은 PR (ExceptionHandler) + 별도 alert rule 제안 Issue |
 
-> ⚠️ Draft PR은 시연용. 머지하면 의도적 버그가 사라져 시나리오 재현 불가.
+> ⚠️ Draft PR은 시연용. 머지하지 마세요 (의도적 버그 보존).
 
-### 비용
-
-- 1회 시연: 약 $0.5~1
-- 일일 cap: `DAILY_COST_CAP_USD=5` (기본)
+### 비용 (Claude API)
+- 1회 시연 (6 시나리오): 약 $1~2
+- 일일 cap: `DAILY_COST_CAP_USD=5` (기본). 초과 시 자동 거절
