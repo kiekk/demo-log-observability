@@ -8,7 +8,7 @@ discovery.relabel "docker" {
 
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex         = "/(app|buggy-service|demo-app-.*)"
+    regex         = "/(app|buggy-service|ai-bot|demo-app-.*)"
     action        = "keep"
   }
 
@@ -35,6 +35,13 @@ discovery.relabel "docker" {
     regex         = "/app|/demo-app-.*"
     target_label  = "service"
     replacement   = "demo-api"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/ai-bot"
+    target_label  = "service"
+    replacement   = "ai-bot"
   }
 
   rule {

@@ -1,0 +1,93 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total Analysis Runs (last 1h)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"ai-bot\"} | json | message=~\"finding recorded.*\" [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {"colorMode": "value", "graphMode": "none", "textMode": "value"}
+    },
+    {
+      "type": "stat",
+      "title": "Failed Runs (last 1h)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=\"ai-bot\"} | json | message=~\".*orchestrator error.*\" [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {"colorMode": "value", "graphMode": "none", "textMode": "value"},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]
+          }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Runs over time (by category)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "sum by (category) (count_over_time({service=\"ai-bot\"} | json | category=~\".+\" [5m]))",
+          "refId": "A",
+          "legendFormat": "{{category}}"
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Category distribution (last 24h)",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "sum by (category) (count_over_time({service=\"ai-bot\"} | json | category=~\".+\" [24h]))",
+          "refId": "A",
+          "legendFormat": "{{category}}"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Recent Analysis Runs",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 16},
+      "targets": [
+        {
+          "expr": "{service=\"ai-bot\"} | json | level=~\"INFO|ERROR\"",
+          "refId": "A"
+        }
+      ],
+      "options": {"showTime": true, "sortOrder": "Descending", "wrapLogMessage": true}
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["ai-bot"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "title": "AI Bot Overview",
+  "uid": "ai-bot-overview",
+  "version": 1,
+  "weekStart": ""
+}
