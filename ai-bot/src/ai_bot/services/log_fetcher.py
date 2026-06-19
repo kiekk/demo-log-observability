@@ -30,10 +30,14 @@ class LogFetcher:
     ) -> list[LogLine]:
         end_ns = int(time.time() * 1_000_000_000)
         start_ns = end_ns - window_minutes * 60 * 1_000_000_000
-        query = (
-            f'{{service="{service}"}} | json '
-            f'| commit_sha="{commit_sha}" | level="ERROR"'
-        )
+        if commit_sha and commit_sha != "unknown":
+            query = (
+                f'{{service="{service}"}} | json '
+                f'| commit_sha="{commit_sha}" | level="ERROR"'
+            )
+        else:
+            # Fallback: no commit_sha filter (e.g. gradle-git-properties not set)
+            query = f'{{service="{service}"}} | json | level="ERROR"'
         params = {
             "query": query,
             "start": str(start_ns),

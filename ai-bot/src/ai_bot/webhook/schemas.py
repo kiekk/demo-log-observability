@@ -42,7 +42,7 @@ class IncidentEvent(BaseModel):
         return cls(
             service=labels.get("service", "unknown"),
             commit_sha=labels.get("commit_sha", "unknown"),
-            error_class=labels.get("error_class", "Unknown"),
+            error_class=labels.get("error_class") or labels.get("exception_class") or "Unknown",
             request_id=labels.get("request_id"),
             grafana_alert_url=payload.externalURL or None,
         )

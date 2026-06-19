@@ -81,7 +81,7 @@ groups:
                 type: loki
                 uid: loki
               expr: |
-                sum by (service, commit_sha) (
+                sum by (service, commit_sha, exception_class) (
                   count_over_time({service="demo-buggy-service"} | json | level="ERROR" [5m])
                 )
               intervalMs: 60000

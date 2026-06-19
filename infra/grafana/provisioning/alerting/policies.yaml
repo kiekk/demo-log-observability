@@ -19,7 +19,7 @@ policies:
       - receiver: ai-bot-webhook
         object_matchers:
           - ['target', '=', 'ai-bot']
-        group_by: ['service', 'commit_sha']
+        group_by: ['service', 'commit_sha', 'exception_class']
         group_wait: 10s
         group_interval: 30s
         repeat_interval: 1h

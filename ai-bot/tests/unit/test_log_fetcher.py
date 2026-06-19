@@ -51,3 +51,23 @@ async def test_fetch_handles_loki_error() -> None:
     fetcher = LogFetcher(loki_url="http://loki:3100")
     lines = await fetcher.fetch_recent_errors(service="x", commit_sha="y", window_minutes=10)
     assert lines == []
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_fetch_unknown_commit_sha_uses_fallback_query() -> None:
+    captured: list = []
+
+    def _capture(request):
+        captured.append(request.url)
+        return Response(200, json={"data": {"result": []}})
+
+    respx.get("http://loki:3100/loki/api/v1/query_range").mock(side_effect=_capture)
+    fetcher = LogFetcher(loki_url="http://loki:3100")
+    await fetcher.fetch_recent_errors(service="demo-buggy-service", commit_sha="unknown", window_minutes=10)
+
+    assert len(captured) == 1
+    url_str = str(captured[0])
+    # Extract the query param value (URL-decoded via httpx)
+    query_part = url_str.split("query=")[1].split("&")[0]
+    assert "commit_sha" not in query_part
